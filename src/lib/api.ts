@@ -122,6 +122,11 @@ export const api = {
       ),
     cancelInvitation: (id: number) =>
       request<{ message: string }>(`/members/invitations/${id}`, { method: 'DELETE' }),
+    resendInvitation: (id: number) =>
+      request<{ invitation: Invitation & { email_sent?: boolean; demo?: boolean; email_message?: string } }>(
+        `/members/invitations/${id}/resend`,
+        { method: 'POST' }
+      ),
     updateRole: (id: number, role: UserRole) =>
       request<{ member: TeamMember }>(`/members/${id}/role`, {
         method: 'PATCH',

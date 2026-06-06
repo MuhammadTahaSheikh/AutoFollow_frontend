@@ -98,6 +98,23 @@ export default function MembersPage() {
     }
   };
 
+  const resendInvite = async (id: number, inviteEmail: string) => {
+    setError('');
+    setMessage('');
+    try {
+      const { invitation } = await api.members.resendInvitation(id);
+      const text =
+        invitation.email_message ||
+        (invitation.email_sent
+          ? `Invitation email resent to ${inviteEmail}`
+          : `Could not send email to ${inviteEmail}`);
+      setMessage(text);
+      setMessageType(invitation.email_sent ? 'success' : 'warning');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend invitation email');
+    }
+  };
+
   const changeRole = async (memberId: number, newRole: UserRole) => {
     try {
       await api.members.updateRole(memberId, newRole);
@@ -206,7 +223,13 @@ export default function MembersPage() {
                     {ROLE_LABELS[inv.role]} · expires {new Date(inv.expires_at).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => resendInvite(inv.id, inv.email)}
+                    className="btn-primary text-sm"
+                  >
+                    Resend email
+                  </button>
                   <button onClick={() => copyLink(inv.invite_link)} className="btn-secondary text-sm">
                     Copy link
                   </button>
