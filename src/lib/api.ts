@@ -28,7 +28,13 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export const api = {
   auth: {
-    register: (data: { name: string; email: string; password: string }) =>
+    register: (data: {
+      name: string;
+      email: string;
+      password: string;
+      inviteToken?: string;
+      organizationName?: string;
+    }) =>
       request<{ token: string; user: User }>('/auth/register', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -39,8 +45,11 @@ export const api = {
         body: JSON.stringify(data),
       }),
     me: () => request<{ user: User }>('/auth/me'),
+    verifyInvite: (token: string) =>
+      request<{ invitation: InvitationPreview }>(`/auth/invite/${token}`),
   },
   leads: {
+    assignableUsers: () => request<{ users: TeamMember[] }>('/leads/assignable-users'),
     list: (params?: { status?: string; search?: string }) => {
       const filtered = Object.fromEntries(
         Object.entries(params || {}).filter(([, v]) => v != null && v !== '')
@@ -50,9 +59,9 @@ export const api = {
     },
     stats: () => request<{ stats: LeadStats }>('/leads/stats'),
     get: (id: number) => request<{ lead: Lead }>(`/leads/${id}`),
-    create: (data: Partial<Lead>) =>
+    create: (data: Partial<Lead> & { assignedUserIds?: number[] }) =>
       request<{ lead: Lead }>('/leads', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: Partial<Lead>) =>
+    update: (id: number, data: Partial<Lead> & { assignedUserIds?: number[] }) =>
       request<{ lead: Lead }>(`/leads/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<{ message: string }>(`/leads/${id}`, { method: 'DELETE' }),
@@ -100,13 +109,39 @@ export const api = {
         body: JSON.stringify(data),
       }),
   },
+  members: {
+    list: () => request<{ members: TeamMember[] }>('/members'),
+    listInvitations: () => request<{ invitations: Invitation[] }>('/members/invitations'),
+    invite: (data: { email: string; role: UserRole }) =>
+      request<{ invitation: Invitation & { email_sent?: boolean; demo?: boolean; email_message?: string } }>(
+        '/members/invitations',
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+        }
+      ),
+    cancelInvitation: (id: number) =>
+      request<{ message: string }>(`/members/invitations/${id}`, { method: 'DELETE' }),
+    updateRole: (id: number, role: UserRole) =>
+      request<{ member: TeamMember }>(`/members/${id}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role }),
+      }),
+    remove: (id: number) =>
+      request<{ message: string }>(`/members/${id}`, { method: 'DELETE' }),
+  },
 };
 
 export interface User {
   id: number;
   name: string;
   email: string;
+  role: UserRole;
+  organization_id: number | null;
+  organization_name?: string | null;
 }
+
+export type UserRole = 'super_admin' | 'admin' | 'user';
 
 export interface UserProfile extends User {
   company_name?: string | null;
@@ -127,6 +162,14 @@ export interface Lead {
   notes?: string;
   created_at: string;
   updated_at: string;
+  assignees?: LeadAssignee[];
+}
+
+export interface LeadAssignee {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
 }
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'converted' | 'lost';
@@ -162,4 +205,40 @@ export interface EmailSchedule {
   error_message?: string;
   lead_name?: string;
   lead_email?: string;
+}
+
+export interface TeamMember {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  created_at: string;
+}
+
+export interface InvitationPreview {
+  email: string;
+  role: UserRole;
+  organization_name: string;
+}
+
+export interface Invitation {
+  id: number;
+  email: string;
+  role: UserRole;
+  token?: string;
+  status?: string;
+  expires_at: string;
+  created_at?: string;
+  invited_by_name?: string;
+  invite_link: string;
+}
+
+export const ROLE_LABELS: Record<UserRole, string> = {
+  super_admin: 'Super Admin',
+  admin: 'Admin',
+  user: 'User',
+};
+
+export function canManageMembers(role?: UserRole) {
+  return role === 'super_admin' || role === 'admin';
 }

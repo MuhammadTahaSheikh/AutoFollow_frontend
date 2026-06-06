@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { api, Lead, LeadStats, LeadStatus } from '@/lib/api';
+import { api, canManageMembers, Lead, LeadStats, LeadStatus } from '@/lib/api';
+import { useAuth } from '@/lib/auth';
 import LeadForm from '@/components/LeadForm';
 import LeadModal from '@/components/LeadModal';
 
@@ -14,6 +15,8 @@ const STATUS_COLORS: Record<LeadStatus, string> = {
 };
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const isManager = canManageMembers(user?.role);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stats, setStats] = useState<LeadStats | null>(null);
   const [search, setSearch] = useState('');
@@ -42,13 +45,13 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  const handleCreate = async (data: Partial<Lead>) => {
+  const handleCreate = async (data: Partial<Lead> & { assignedUserIds?: number[] }) => {
     await api.leads.create(data);
     setShowForm(false);
     fetchData();
   };
 
-  const handleUpdate = async (data: Partial<Lead>) => {
+  const handleUpdate = async (data: Partial<Lead> & { assignedUserIds?: number[] }) => {
     if (!editingLead) return;
     await api.leads.update(editingLead.id, data);
     setEditingLead(null);
@@ -127,6 +130,7 @@ export default function DashboardPage() {
                   <th className="px-4 py-3 font-medium">Phone</th>
                   <th className="px-4 py-3 font-medium">Source</th>
                   <th className="px-4 py-3 font-medium">Status</th>
+                  {isManager && <th className="px-4 py-3 font-medium">Assigned to</th>}
                   <th className="px-4 py-3 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -142,6 +146,13 @@ export default function DashboardPage() {
                         {lead.status}
                       </span>
                     </td>
+                    {isManager && (
+                      <td className="px-4 py-3 text-slate-600 text-sm">
+                        {lead.assignees && lead.assignees.length > 0
+                          ? lead.assignees.map((a) => a.name).join(', ')
+                          : <span className="text-slate-400">Not assigned</span>}
+                      </td>
+                    )}
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <button
@@ -156,12 +167,14 @@ export default function DashboardPage() {
                         >
                           Edit
                         </button>
-                        <button
-                          onClick={() => handleDelete(lead.id)}
-                          className="text-sm text-red-600 hover:underline"
-                        >
-                          Delete
-                        </button>
+                        {isManager && (
+                          <button
+                            onClick={() => handleDelete(lead.id)}
+                            className="text-sm text-red-600 hover:underline"
+                          >
+                            Delete
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

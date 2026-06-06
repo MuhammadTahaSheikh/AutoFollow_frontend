@@ -3,12 +3,14 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { canManageMembers, ROLE_LABELS } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 const navItems = [
   { href: '/dashboard', label: 'Leads', icon: '👥' },
   { href: '/dashboard/emails', label: 'Emails', icon: '✉️' },
   { href: '/dashboard/ai', label: 'AI Templates', icon: '✨' },
+  { href: '/dashboard/members', label: 'Members', icon: '🤝', adminOnly: true },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
 ];
 
@@ -44,7 +46,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          {navItems.map((item) => {
+          {navItems
+            .filter((item) => !item.adminOnly || canManageMembers(user.role))
+            .map((item) => {
             const active = pathname === item.href;
             return (
               <Link
@@ -67,6 +71,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="px-3 py-2">
             <p className="text-sm font-medium truncate">{user.name}</p>
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
+            {user.role && (
+              <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full bg-brand-50 text-brand-700">
+                {ROLE_LABELS[user.role]}
+              </span>
+            )}
           </div>
           <button
             onClick={() => { logout(); router.push('/login'); }}
