@@ -37,13 +37,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="min-h-screen flex">
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
-        <div className="p-6 border-b border-slate-200">
+    <div className="h-screen flex overflow-hidden">
+      <aside className="w-64 shrink-0 bg-white border-r border-slate-200 flex flex-col h-full">
+        <div className="shrink-0 p-6 border-b border-slate-200">
           <Logo size="sm" />
         </div>
 
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto p-4 space-y-1">
           {navItems
             .filter((item) => !item.adminOnly || canManageMembers(user.role))
             .map((item) => {
@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-200">
+        <div className="shrink-0 p-4 border-t border-slate-200">
           <div className="px-3 py-2">
             <p className="text-sm font-medium truncate">{user.name}</p>
             <p className="text-xs text-slate-500 truncate">{user.email}</p>
@@ -86,7 +86,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 min-h-0 overflow-auto">
         <div className="max-w-6xl mx-auto p-8">{children}</div>
       </main>
     </div>
