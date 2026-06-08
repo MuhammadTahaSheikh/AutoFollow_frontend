@@ -19,6 +19,7 @@ import ActivityTimeline from '@/components/ActivityTimeline';
 import LeadNotes from '@/components/LeadNotes';
 import LeadForm from '@/components/LeadForm';
 import LeadModal from '@/components/LeadModal';
+import EmailRepliesList from '@/components/EmailRepliesList';
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
   new: 'bg-blue-100 text-blue-700',
@@ -66,8 +67,18 @@ export default function LeadDetailPage() {
 
   const fetchLead = useCallback(async () => {
     try {
-      const { lead: data } = await api.leads.get(leadId);
-      setLead(data);
+      const [leadRes, repliesRes] = await Promise.allSettled([
+        api.leads.get(leadId),
+        api.emails.replies(leadId),
+      ]);
+      if (leadRes.status !== 'fulfilled') {
+        router.replace('/dashboard');
+        return;
+      }
+      setLead(leadRes.value.lead);
+      if (repliesRes.status === 'fulfilled') {
+        setEmailReplies(repliesRes.value.replies);
+      }
     } catch {
       router.replace('/dashboard');
     } finally {
@@ -85,12 +96,12 @@ export default function LeadDetailPage() {
         const { notes: data } = await api.notes.list(leadId);
         setNotes(data);
       } else if (activeTab === 'emails') {
-        const [{ schedules }, { replies }] = await Promise.all([
+        const [schedulesRes, repliesRes] = await Promise.allSettled([
           api.emails.list(leadId),
           api.emails.replies(leadId),
         ]);
-        setEmails(schedules);
-        setEmailReplies(replies);
+        if (schedulesRes.status === 'fulfilled') setEmails(schedulesRes.value.schedules);
+        if (repliesRes.status === 'fulfilled') setEmailReplies(repliesRes.value.replies);
       } else if (activeTab === 'ai') {
         const { templates: data } = await api.ai.templates(leadId);
         setTemplates(data);
@@ -189,6 +200,11 @@ export default function LeadDetailPage() {
             }`}
           >
             {t.label}
+            {t.id === 'emails' && emailReplies.length > 0 && (
+              <span className="ml-1.5 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                {emailReplies.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -248,6 +264,21 @@ export default function LeadDetailPage() {
                 )}
               </dl>
             </div>
+            {emailReplies.length > 0 && (
+              <div className="md:col-span-2">
+                <h3 className="text-sm font-medium text-slate-500 mb-3">Latest reply</h3>
+                <EmailRepliesList replies={emailReplies.slice(0, 1)} />
+                {emailReplies.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setTab('emails')}
+                    className="text-sm text-brand-600 hover:underline mt-2"
+                  >
+                    View all {emailReplies.length} replies →
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -269,27 +300,7 @@ export default function LeadDetailPage() {
               {emailReplies.length > 0 && (
                 <div>
                   <h3 className="text-sm font-medium text-slate-500 mb-3">Replies received</h3>
-                  <div className="space-y-3">
-                    {emailReplies.map((reply) => (
-                      <div key={reply.id} className="border border-green-100 bg-green-50/50 rounded-lg p-4">
-                        <div className="flex items-start justify-between gap-4 mb-2">
-                          <div>
-                            <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700 mr-2">
-                              Inbound
-                            </span>
-                            <span className="font-medium text-slate-900">{reply.subject}</span>
-                          </div>
-                          <time className="text-xs text-slate-400 shrink-0">
-                            {new Date(reply.received_at).toLocaleString()}
-                          </time>
-                        </div>
-                        <p className="text-xs text-slate-500 mb-2">
-                          From {reply.from_name || reply.from_email}
-                        </p>
-                        <p className="text-sm text-slate-700 whitespace-pre-wrap">{reply.body_text}</p>
-                      </div>
-                    ))}
-                  </div>
+                  <EmailRepliesList replies={emailReplies} />
                 </div>
               )}
 

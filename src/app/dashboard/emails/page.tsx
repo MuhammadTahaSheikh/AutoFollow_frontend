@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, EmailSchedule } from '@/lib/api';
+import Link from 'next/link';
+import { api, EmailSchedule, EmailReply } from '@/lib/api';
+import EmailRepliesList from '@/components/EmailRepliesList';
 
 const STATUS_STYLES: Record<EmailSchedule['status'], string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -12,12 +14,17 @@ const STATUS_STYLES: Record<EmailSchedule['status'], string> = {
 
 export default function EmailsPage() {
   const [schedules, setSchedules] = useState<EmailSchedule[]>([]);
+  const [replies, setReplies] = useState<EmailReply[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchEmails = async () => {
     try {
-      const { schedules } = await api.emails.list();
-      setSchedules(schedules);
+      const [schedulesRes, repliesRes] = await Promise.all([
+        api.emails.list(),
+        api.emails.replies(),
+      ]);
+      setSchedules(schedulesRes.schedules);
+      setReplies(repliesRes.replies);
     } catch (err) {
       console.error(err);
     } finally {
@@ -39,16 +46,25 @@ export default function EmailsPage() {
     <div>
       <div className="mb-8">
         <h1 className="text-2xl font-bold">Email Automation</h1>
-        <p className="text-slate-500">Track scheduled and sent follow-up emails</p>
+        <p className="text-slate-500">Track sent emails and inbound lead replies</p>
       </div>
+
+      {!loading && replies.length > 0 && (
+        <div className="card p-6 mb-6">
+          <h2 className="text-lg font-semibold mb-4">Replies received</h2>
+          <EmailRepliesList replies={replies} showLeadLink />
+        </div>
+      )}
 
       <div className="card">
         {loading ? (
           <div className="p-8 text-center text-slate-400">Loading emails...</div>
-        ) : schedules.length === 0 ? (
+        ) : schedules.length === 0 && replies.length === 0 ? (
           <div className="p-8 text-center text-slate-500">
             No emails yet. Generate an AI message from a lead and schedule or send it.
           </div>
+        ) : schedules.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">No outbound emails yet.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
