@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Logo from '@/components/Logo';
 import { useAuth } from '@/lib/auth';
 import { api, InvitationPreview, ROLE_LABELS } from '@/lib/api';
 
@@ -63,8 +64,8 @@ function RegisterForm() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="card w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold">AF</span>
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" showText={false} />
           </div>
           <h1 className="text-2xl font-bold">
             {inviteInfo ? 'Join your team' : 'Create your account'}

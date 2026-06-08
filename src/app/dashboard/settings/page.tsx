@@ -80,7 +80,7 @@ export default function SettingsPage() {
             className="input-field"
             value={form.company_name}
             onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-            placeholder="e.g. Bestech Data"
+            placeholder="e.g. bestechVison"
           />
         </div>
 

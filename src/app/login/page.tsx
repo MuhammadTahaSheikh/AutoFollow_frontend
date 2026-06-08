@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Logo from '@/components/Logo';
+import { COMPANY_NAME } from '@/lib/brand';
 import { useAuth } from '@/lib/auth';
 
 export default function LoginPage() {
@@ -31,11 +33,11 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="card w-full max-w-md p-8">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-brand-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold">AF</span>
+          <div className="flex justify-center mb-4">
+            <Logo size="lg" showText={false} />
           </div>
           <h1 className="text-2xl font-bold">Welcome back</h1>
-          <p className="text-slate-500 mt-1">Sign in to your AutoFollow account</p>
+          <p className="text-slate-500 mt-1">Sign in to your {COMPANY_NAME} account</p>
         </div>
 
         {error && (

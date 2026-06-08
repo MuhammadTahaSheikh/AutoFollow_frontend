@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import Link from 'next/link';
+import Logo from '@/components/Logo';
 
 export default function HomePage() {
   const { user, loading } = useAuth();
@@ -27,12 +28,7 @@ export default function HomePage() {
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-slate-200 bg-white">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">AF</span>
-            </div>
-            <span className="font-semibold text-lg">AutoFollow AI CRM</span>
-          </div>
+          <Logo size="sm" variant="full" textClassName="text-lg" />
           <div className="flex gap-3">
             <Link href="/login" className="btn-secondary">Log in</Link>
             <Link href="/register" className="btn-primary">Get started</Link>

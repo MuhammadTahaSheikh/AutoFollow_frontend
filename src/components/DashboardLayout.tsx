@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import Logo from '@/components/Logo';
 import { canManageMembers, ROLE_LABELS } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -38,12 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen flex">
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
         <div className="p-6 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">AF</span>
-            </div>
-            <span className="font-semibold">AutoFollow</span>
-          </div>
+          <Logo size="sm" />
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
