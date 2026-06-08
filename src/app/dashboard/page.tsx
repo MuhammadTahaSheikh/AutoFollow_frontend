@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { api, canManageMembers, Lead, LeadStats, LeadStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
@@ -137,7 +138,14 @@ export default function DashboardPage() {
               <tbody>
                 {leads.map((lead) => (
                   <tr key={lead.id} className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="px-4 py-3 font-medium">{lead.name}</td>
+                    <td className="px-4 py-3 font-medium">
+                      <Link
+                        href={`/dashboard/leads/${lead.id}`}
+                        className="text-brand-600 hover:underline"
+                      >
+                        {lead.name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-slate-600">{lead.email}</td>
                     <td className="px-4 py-3 text-slate-600">{lead.phone || '—'}</td>
                     <td className="px-4 py-3 text-slate-600">{lead.source}</td>
@@ -155,9 +163,15 @@ export default function DashboardPage() {
                     )}
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
+                        <Link
+                          href={`/dashboard/leads/${lead.id}`}
+                          className="text-sm text-brand-600 hover:underline"
+                        >
+                          View
+                        </Link>
                         <button
                           onClick={() => setSelectedLead(lead)}
-                          className="text-sm text-brand-600 hover:underline"
+                          className="text-sm text-slate-600 hover:underline"
                         >
                           AI Follow-up
                         </button>

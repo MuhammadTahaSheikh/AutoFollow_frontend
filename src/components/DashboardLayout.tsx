@@ -7,9 +7,10 @@ import { canManageMembers, ROLE_LABELS } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
 const navItems = [
-  { href: '/dashboard', label: 'Leads', icon: '👥' },
+  { href: '/dashboard', label: 'Leads', icon: '👥', matchPrefix: '/dashboard/leads' },
   { href: '/dashboard/emails', label: 'Emails', icon: '✉️' },
   { href: '/dashboard/ai', label: 'AI Templates', icon: '✨' },
+  { href: '/dashboard/sequences', label: 'Sequences', icon: '🔁', adminOnly: true },
   { href: '/dashboard/members', label: 'Members', icon: '🤝', adminOnly: true },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
 ];
@@ -49,7 +50,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {navItems
             .filter((item) => !item.adminOnly || canManageMembers(user.role))
             .map((item) => {
-            const active = pathname === item.href;
+            const active =
+              pathname === item.href ||
+              (item.matchPrefix && pathname.startsWith(item.matchPrefix));
             return (
               <Link
                 key={item.href}

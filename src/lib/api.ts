@@ -100,6 +100,10 @@ export const api = {
       }),
     cancel: (id: number) =>
       request<{ schedule: EmailSchedule }>(`/emails/${id}`, { method: 'DELETE' }),
+    replies: (leadId?: number) => {
+      const query = leadId ? `?leadId=${leadId}` : '';
+      return request<{ replies: EmailReply[] }>(`/emails/replies${query}`);
+    },
   },
   profile: {
     get: () => request<{ profile: UserProfile }>('/profile'),
@@ -134,6 +138,56 @@ export const api = {
       }),
     remove: (id: number) =>
       request<{ message: string }>(`/members/${id}`, { method: 'DELETE' }),
+  },
+  activities: {
+    create: (data: {
+      leadId?: number;
+      activityType: ActivityType;
+      description: string;
+      metadata?: Record<string, unknown>;
+    }) =>
+      request<{ activity: Activity }>('/activities', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    forLead: (leadId: number) =>
+      request<{ activities: Activity[] }>(`/activities/lead/${leadId}`),
+    forOrganization: () =>
+      request<{ activities: Activity[] }>('/activities/organization'),
+  },
+  notes: {
+    list: (leadId: number) => request<{ notes: LeadNote[] }>(`/notes/lead/${leadId}`),
+    create: (data: { leadId: number; note: string }) =>
+      request<{ note: LeadNote }>('/notes', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, note: string) =>
+      request<{ note: LeadNote }>(`/notes/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ note }),
+      }),
+    delete: (id: number) =>
+      request<{ message: string }>(`/notes/${id}`, { method: 'DELETE' }),
+  },
+  sequences: {
+    list: () => request<{ sequences: FollowUpSequence[] }>('/sequences'),
+    create: (data: {
+      name: string;
+      is_active?: boolean;
+      steps: FollowUpStepInput[];
+    }) =>
+      request<{ sequence: FollowUpSequence }>('/sequences', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (
+      id: number,
+      data: Partial<{ name: string; is_active: boolean; steps: FollowUpStepInput[] }>
+    ) =>
+      request<{ sequence: FollowUpSequence }>(`/sequences/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    delete: (id: number) =>
+      request<{ message: string }>(`/sequences/${id}`, { method: 'DELETE' }),
   },
 };
 
@@ -212,6 +266,23 @@ export interface EmailSchedule {
   lead_email?: string;
 }
 
+export interface EmailReply {
+  id: number;
+  organization_id: number;
+  lead_id: number;
+  from_email: string;
+  from_name?: string;
+  subject: string;
+  body_text: string;
+  body_html?: string;
+  message_id?: string;
+  received_at: string;
+  source: string;
+  created_at: string;
+  lead_name?: string;
+  lead_email?: string;
+}
+
 export interface TeamMember {
   id: number;
   name: string;
@@ -237,6 +308,112 @@ export interface Invitation {
   invited_by_name?: string;
   invite_link: string;
 }
+
+export type ActivityType =
+  | 'lead_created'
+  | 'lead_updated'
+  | 'lead_deleted'
+  | 'lead_assigned'
+  | 'lead_status_changed'
+  | 'ai_message_generated'
+  | 'ai_template_used'
+  | 'email_scheduled'
+  | 'email_sent'
+  | 'email_failed'
+  | 'email_cancelled'
+  | 'note_added'
+  | 'note_updated'
+  | 'note_deleted'
+  | 'follow_up_scheduled'
+  | 'email_received';
+
+export interface Activity {
+  id: number;
+  organization_id: number;
+  lead_id: number | null;
+  user_id: number;
+  activity_type: ActivityType;
+  description: string;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  user_name?: string;
+  user_email?: string;
+  lead_name?: string;
+}
+
+export interface LeadNote {
+  id: number;
+  lead_id: number;
+  user_id: number;
+  note: string;
+  created_at: string;
+  updated_at: string;
+  author_name?: string;
+  author_email?: string;
+}
+
+export interface FollowUpStep {
+  id: number;
+  sequence_id: number;
+  step_number: number;
+  delay_hours: number;
+  subject: string;
+  message_template: string;
+}
+
+export interface FollowUpStepInput {
+  step_number?: number;
+  delay_hours: number;
+  subject: string;
+  message_template: string;
+}
+
+export interface FollowUpSequence {
+  id: number;
+  organization_id: number;
+  name: string;
+  is_active: number | boolean;
+  created_at: string;
+  steps: FollowUpStep[];
+}
+
+export const ACTIVITY_LABELS: Record<ActivityType, string> = {
+  lead_created: 'Lead Created',
+  lead_updated: 'Lead Updated',
+  lead_deleted: 'Lead Deleted',
+  lead_assigned: 'Lead Assigned',
+  lead_status_changed: 'Status Changed',
+  ai_message_generated: 'AI Message Generated',
+  ai_template_used: 'AI Template Used',
+  email_scheduled: 'Email Scheduled',
+  email_sent: 'Email Sent',
+  email_failed: 'Email Failed',
+  email_cancelled: 'Email Cancelled',
+  note_added: 'Note Added',
+  note_updated: 'Note Updated',
+  note_deleted: 'Note Deleted',
+  follow_up_scheduled: 'Follow-Up Scheduled',
+  email_received: 'Reply Received',
+};
+
+export const ACTIVITY_ICONS: Record<ActivityType, string> = {
+  lead_created: '👤',
+  lead_updated: '✏️',
+  lead_deleted: '🗑️',
+  lead_assigned: '📌',
+  lead_status_changed: '🔄',
+  ai_message_generated: '✨',
+  ai_template_used: '📝',
+  email_scheduled: '⏰',
+  email_sent: '✉️',
+  email_failed: '❌',
+  email_cancelled: '🚫',
+  note_added: '📋',
+  note_updated: '📋',
+  note_deleted: '📋',
+  follow_up_scheduled: '🔁',
+  email_received: '📩',
+};
 
 export const ROLE_LABELS: Record<UserRole, string> = {
   super_admin: 'Super Admin',
