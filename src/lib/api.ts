@@ -167,6 +167,28 @@ export const api = {
     delete: (id: number) =>
       request<{ message: string }>(`/notes/${id}`, { method: 'DELETE' }),
   },
+  billing: {
+    plans: () =>
+      request<{ plans: PlanInfo[]; stripe_configured: boolean }>('/billing/plans'),
+    subscription: () =>
+      request<{ billing: OrganizationBilling }>('/billing/subscription'),
+    usage: () => request<{ usage: UsageSummary }>('/billing/usage'),
+    checkout: (plan: PaidPlanId) =>
+      request<{ url: string; session_id: string }>('/billing/checkout', {
+        method: 'POST',
+        body: JSON.stringify({ plan }),
+      }),
+    portal: () =>
+      request<{ url: string }>('/billing/portal', { method: 'POST' }),
+    cancel: () =>
+      request<{ billing: OrganizationBilling; message: string }>('/billing/cancel', {
+        method: 'POST',
+      }),
+    resume: () =>
+      request<{ billing: OrganizationBilling; message: string }>('/billing/resume', {
+        method: 'POST',
+      }),
+  },
   sequences: {
     list: () => request<{ sequences: FollowUpSequence[] }>('/sequences'),
     create: (data: {
@@ -201,6 +223,61 @@ export interface User {
 }
 
 export type UserRole = 'super_admin' | 'admin' | 'user';
+
+export type PlanId = 'free' | 'pro' | 'agency';
+export type PaidPlanId = 'pro' | 'agency';
+
+export interface PlanLimits {
+  ai_requests: number;
+  leads: number;
+  emails: number;
+  team_members: number;
+  storage_mb: number;
+}
+
+export interface PlanInfo {
+  id: PlanId;
+  name: string;
+  description: string;
+  price_monthly: number;
+  limits: PlanLimits;
+  features: string[];
+  stripe_price_configured: boolean;
+}
+
+export interface OrganizationBilling {
+  organization_id: number;
+  organization_name: string;
+  plan: PlanId;
+  plan_name: string;
+  price_monthly: number;
+  limits: PlanLimits;
+  features: string[];
+  stripe_configured: boolean;
+  subscription: {
+    status: string;
+    current_period_end: string | null;
+    cancel_at_period_end: boolean;
+    has_stripe_subscription: boolean;
+  };
+}
+
+export interface UsageMetric {
+  used: number;
+  limit: number;
+}
+
+export interface UsageSummary {
+  plan: PlanId;
+  period_start: string;
+  usage: {
+    ai_requests: UsageMetric;
+    emails: UsageMetric;
+    leads: UsageMetric;
+    team_members: UsageMetric;
+    storage_mb: UsageMetric;
+  };
+}
 
 export interface UserProfile extends User {
   company_name?: string | null;

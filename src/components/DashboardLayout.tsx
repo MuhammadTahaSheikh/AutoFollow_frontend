@@ -13,6 +13,7 @@ const navItems = [
   { href: '/dashboard/ai', label: 'AI Templates', icon: '✨' },
   { href: '/dashboard/sequences', label: 'Sequences', icon: '🔁', adminOnly: true },
   { href: '/dashboard/members', label: 'Members', icon: '🤝', adminOnly: true },
+  { href: '/dashboard/billing', label: 'Billing', icon: '💳', adminOnly: true },
   { href: '/dashboard/settings', label: 'Settings', icon: '⚙️' },
 ];
 
