@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -20,6 +20,8 @@ import LeadNotes from '@/components/LeadNotes';
 import LeadForm from '@/components/LeadForm';
 import LeadModal from '@/components/LeadModal';
 import EmailRepliesList from '@/components/EmailRepliesList';
+import EmailThreadList from '@/components/EmailThreadList';
+import { buildLeadConversations } from '@/lib/emailThreads';
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
   new: 'bg-blue-100 text-blue-700',
@@ -39,13 +41,6 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'ai', label: 'AI Messages' },
 ];
 
-const EMAIL_STATUS_COLORS: Record<EmailSchedule['status'], string> = {
-  pending: 'bg-yellow-100 text-yellow-700',
-  sent: 'bg-green-100 text-green-700',
-  failed: 'bg-red-100 text-red-700',
-  cancelled: 'bg-slate-100 text-slate-600',
-};
-
 export default function LeadDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -64,6 +59,11 @@ export default function LeadDetailPage() {
   const [tabLoading, setTabLoading] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+
+  const emailThreads = useMemo(
+    () => buildLeadConversations(emails, emailReplies)[0]?.threads || [],
+    [emails, emailReplies]
+  );
 
   const fetchLead = useCallback(async () => {
     try {
@@ -296,57 +296,7 @@ export default function LeadDetailPage() {
           ) : emails.length === 0 && emailReplies.length === 0 ? (
             <div className="p-8 text-center text-slate-500">No emails yet.</div>
           ) : (
-            <div className="space-y-8">
-              {emailReplies.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-500 mb-3">Replies received</h3>
-                  <EmailRepliesList replies={emailReplies} />
-                </div>
-              )}
-
-              {emails.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-medium text-slate-500 mb-3">Sent &amp; scheduled</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="text-left text-sm text-slate-500 border-b border-slate-100">
-                          <th className="px-2 py-3 font-medium">Subject</th>
-                          <th className="px-2 py-3 font-medium">Scheduled</th>
-                          <th className="px-2 py-3 font-medium">Status</th>
-                          <th className="px-2 py-3 font-medium">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {emails.map((email) => (
-                          <tr key={email.id} className="border-b border-slate-50">
-                            <td className="px-2 py-3 font-medium">{email.subject}</td>
-                            <td className="px-2 py-3 text-sm text-slate-600">
-                              {new Date(email.scheduled_at).toLocaleString()}
-                            </td>
-                            <td className="px-2 py-3">
-                              <span className={`text-xs px-2 py-1 rounded-full ${EMAIL_STATUS_COLORS[email.status]}`}>
-                                {email.status}
-                              </span>
-                            </td>
-                            <td className="px-2 py-3">
-                              {email.status === 'pending' && (
-                                <button
-                                  onClick={() => handleCancelEmail(email.id)}
-                                  className="text-sm text-red-600 hover:underline"
-                                >
-                                  Cancel
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </div>
+            <EmailThreadList threads={emailThreads} onCancel={handleCancelEmail} />
           )
         )}
 

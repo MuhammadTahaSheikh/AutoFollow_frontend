@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { BackendHealthLog } from '@/components/BackendHealthLog';
 import { AuthProvider } from '@/lib/auth';
 import { APP_DESCRIPTION, APP_NAME } from '@/lib/brand';
 import './globals.css';
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <BackendHealthLog />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

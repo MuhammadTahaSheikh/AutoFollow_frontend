@@ -65,6 +65,11 @@ export const api = {
       request<{ lead: Lead }>(`/leads/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<{ message: string }>(`/leads/${id}`, { method: 'DELETE' }),
+    import: (leads: CsvLeadImport[]) =>
+      request<{ imported: number; failed: number; skipped: number; errors: string[] }>('/leads/import', {
+        method: 'POST',
+        body: JSON.stringify({ leads }),
+      }),
   },
   ai: {
     generate: (leadId: number, type: MessageType, customInstructions?: string) =>
@@ -299,6 +304,15 @@ export interface Lead {
   created_at: string;
   updated_at: string;
   assignees?: LeadAssignee[];
+}
+
+export interface CsvLeadImport {
+  name: string;
+  email: string;
+  phone?: string;
+  source?: string;
+  status?: LeadStatus;
+  notes?: string;
 }
 
 export interface LeadAssignee {
