@@ -1,8 +1,30 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
+const PUBLIC_AUTH_PATHS = ['/auth/login', '/auth/register'];
+
+export class SessionExpiredError extends Error {
+  constructor(message = 'Session expired') {
+    super(message);
+    this.name = 'SessionExpiredError';
+  }
+}
+
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('token');
+}
+
+function handleSessionExpired() {
+  if (typeof window === 'undefined') return;
+
+  localStorage.removeItem('token');
+  window.dispatchEvent(new Event('auth:session-expired'));
+
+  const { pathname, search } = window.location;
+  if (pathname.startsWith('/login') || pathname.startsWith('/register')) return;
+
+  const returnTo = encodeURIComponent(`${pathname}${search}`);
+  window.location.replace(`/login?expired=1&returnTo=${returnTo}`);
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -20,7 +42,15 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `Request failed (${res.status})`);
+    const message = data.error || `Request failed (${res.status})`;
+    const isPublicAuthRequest = PUBLIC_AUTH_PATHS.some((publicPath) => path.startsWith(publicPath));
+
+    if (res.status === 401 && token && !isPublicAuthRequest) {
+      handleSessionExpired();
+      throw new SessionExpiredError(message);
+    }
+
+    throw new Error(message);
   }
 
   return res.json();

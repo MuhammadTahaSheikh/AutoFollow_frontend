@@ -33,11 +33,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token) {
       api.auth.me()
         .then(({ user }) => setUser(user))
-        .catch(() => localStorage.removeItem('token'))
+        .catch(() => {
+          localStorage.removeItem('token');
+          setUser(null);
+        })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
+
+    const onSessionExpired = () => {
+      localStorage.removeItem('token');
+      setUser(null);
+    };
+
+    window.addEventListener('auth:session-expired', onSessionExpired);
+    return () => window.removeEventListener('auth:session-expired', onSessionExpired);
   }, []);
 
   const login = async (email: string, password: string) => {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '@/components/Logo';
 import { COMPANY_NAME } from '@/lib/brand';
@@ -14,6 +14,9 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const sessionExpired = searchParams.get('expired') === '1';
+  const returnTo = searchParams.get('returnTo');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +24,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push('/dashboard');
+      router.push(returnTo && returnTo.startsWith('/dashboard') ? returnTo : '/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -39,6 +42,12 @@ export default function LoginPage() {
           <h1 className="text-2xl font-bold">Welcome back</h1>
           <p className="text-slate-500 mt-1">Sign in to your {COMPANY_NAME} account</p>
         </div>
+
+        {sessionExpired && (
+          <div className="mb-4 p-3 bg-amber-50 text-amber-800 text-sm rounded-lg border border-amber-100">
+            Your session expired. Please sign in again.
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-700 text-sm rounded-lg">{error}</div>
