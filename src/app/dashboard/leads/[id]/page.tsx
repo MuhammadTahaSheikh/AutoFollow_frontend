@@ -246,13 +246,13 @@ export default function LeadDetailPage() {
                     {new Date(lead.created_at).toLocaleDateString()}
                   </dd>
                 </div>
-                {isManager && lead.assignees && (
+                {(lead.assignees?.length || lead.team_member_name) && (
                   <div>
-                    <dt className="text-xs text-slate-400">Assigned to</dt>
+                    <dt className="text-xs text-slate-400">Team member</dt>
                     <dd className="text-slate-900">
-                      {lead.assignees.length > 0
+                      {lead.assignees && lead.assignees.length > 0
                         ? lead.assignees.map((a) => a.name).join(', ')
-                        : 'Not assigned'}
+                        : lead.team_member_name || 'Not assigned'}
                     </dd>
                   </div>
                 )}

@@ -96,7 +96,7 @@ export const api = {
     delete: (id: number) =>
       request<{ message: string }>(`/leads/${id}`, { method: 'DELETE' }),
     import: (leads: CsvLeadImport[]) =>
-      request<{ imported: number; failed: number; skipped: number; errors: string[] }>('/leads/import', {
+      request<{ imported: number; merged: number; failed: number; skipped: number; errors: string[] }>('/leads/import', {
         method: 'POST',
         body: JSON.stringify({ leads }),
       }),
@@ -331,6 +331,7 @@ export interface Lead {
   source: string;
   status: LeadStatus;
   notes?: string;
+  team_member_name?: string;
   created_at: string;
   updated_at: string;
   assignees?: LeadAssignee[];
@@ -343,6 +344,7 @@ export interface CsvLeadImport {
   source?: string;
   status?: LeadStatus;
   notes?: string;
+  team_member?: string;
 }
 
 export interface LeadAssignee {

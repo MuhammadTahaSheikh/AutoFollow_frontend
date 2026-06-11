@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, canManageMembers, Lead, LeadStats, LeadStatus } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { CSV_IMPORT_TEMPLATE, parseLeadsCsv } from '@/lib/csvImport';
+import BulkEmailModal from '@/components/BulkEmailModal';
 import LeadForm from '@/components/LeadForm';
 import LeadModal from '@/components/LeadModal';
 import LeadRowActions from '@/components/LeadRowActions';
@@ -43,7 +44,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [importMessage, setImportMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [showBulkEmail, setShowBulkEmail] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -64,6 +69,38 @@ export default function DashboardPage() {
     fetchData();
   }, [fetchData]);
 
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    const el = selectAllRef.current;
+    if (!el) return;
+    el.indeterminate = selectedIds.size > 0 && selectedIds.size < leads.length;
+  }, [selectedIds, leads.length]);
+
+  const selectedLeads = leads.filter((lead) => selectedIds.has(lead.id));
+  const allSelected = leads.length > 0 && selectedIds.size === leads.length;
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(leads.map((lead) => lead.id)));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
   const handleCreate = async (data: Partial<Lead> & { assignedUserIds?: number[] }) => {
     await api.leads.create(data);
     setShowForm(false);
@@ -80,7 +117,31 @@ export default function DashboardPage() {
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this lead?')) return;
     await api.leads.delete(id);
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
     fetchData();
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedIds.size;
+    if (count === 0 || !isManager) return;
+    if (!confirm(`Delete ${count} selected lead${count === 1 ? '' : 's'}? This cannot be undone.`)) return;
+
+    setBulkDeleting(true);
+    try {
+      await Promise.all(Array.from(selectedIds).map((id) => api.leads.delete(id)));
+      clearSelection();
+      await fetchData();
+    } catch (err) {
+      console.error(err);
+      alert(err instanceof Error ? err.message : 'Failed to delete some leads.');
+      await fetchData();
+    } finally {
+      setBulkDeleting(false);
+    }
   };
 
   const handleDownloadTemplate = () => {
@@ -116,18 +177,19 @@ export default function DashboardPage() {
       const result = await api.leads.import(parsedLeads);
       const messages = [
         `Imported ${result.imported} lead${result.imported === 1 ? '' : 's'}.`,
-        ...(result.skipped > 0 ? [`Skipped ${result.skipped} duplicate${result.skipped === 1 ? '' : 's'}.`] : []),
+        ...(result.merged > 0 ? [`Merged ${result.merged} duplicate${result.merged === 1 ? '' : 's'}.`] : []),
+        ...(result.skipped > 0 ? [`Skipped ${result.skipped} row${result.skipped === 1 ? '' : 's'}.`] : []),
         ...(result.failed > 0 ? [`${result.failed} row(s) failed.`] : []),
         ...parseErrors,
         ...result.errors,
       ];
 
       setImportMessage({
-        type: result.imported > 0 || result.skipped > 0 ? 'success' : 'error',
+        type: result.imported > 0 || result.merged > 0 || result.skipped > 0 ? 'success' : 'error',
         text: messages.join(' '),
       });
 
-      if (result.imported > 0) {
+      if (result.imported > 0 || result.merged > 0) {
         await fetchData();
       }
     } catch (err) {
@@ -279,22 +341,78 @@ export default function DashboardPage() {
             )}
           </div>
         ) : (
+          <>
+            {selectedIds.size > 0 && (
+              <div className="px-4 py-3 border-b border-brand-100 bg-brand-50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <span className="text-sm font-medium text-brand-800">
+                  {selectedIds.size} selected
+                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowBulkEmail(true)}
+                    className="btn-secondary text-sm py-1.5"
+                  >
+                    Send Email
+                  </button>
+                  {isManager && (
+                    <button
+                      type="button"
+                      onClick={handleBulkDelete}
+                      disabled={bulkDeleting}
+                      className="btn-secondary text-sm py-1.5 text-red-600 border-red-200 hover:bg-red-50 disabled:opacity-50"
+                    >
+                      {bulkDeleting ? 'Deleting...' : 'Delete'}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={clearSelection}
+                    className="text-sm text-slate-500 hover:text-slate-700 px-2"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            )}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[940px]">
               <thead>
                 <tr className="table-header">
+                  <th className="px-4 py-3 w-10">
+                    <input
+                      ref={selectAllRef}
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="rounded border-slate-300"
+                      aria-label="Select all leads"
+                    />
+                  </th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Phone</th>
                   <th className="px-4 py-3">Source</th>
                   <th className="px-4 py-3">Status</th>
-                  {isManager && <th className="px-4 py-3">Assigned to</th>}
+                  <th className="px-4 py-3">Team Member</th>
                   <th className="px-4 py-3 text-right w-[140px]">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {leads.map((lead) => (
-                  <tr key={lead.id} className="table-row">
+                  <tr
+                    key={lead.id}
+                    className={`table-row ${selectedIds.has(lead.id) ? 'bg-brand-50/50' : ''}`}
+                  >
+                    <td className="px-4 py-3.5 w-10">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(lead.id)}
+                        onChange={() => toggleSelect(lead.id)}
+                        className="rounded border-slate-300"
+                        aria-label={`Select ${lead.name}`}
+                      />
+                    </td>
                     <td className="px-4 py-3.5">
                       <Link
                         href={`/dashboard/leads/${lead.id}`}
@@ -322,13 +440,13 @@ export default function DashboardPage() {
                         {formatStatus(lead.status)}
                       </span>
                     </td>
-                    {isManager && (
-                      <td className="px-4 py-3.5 text-slate-600 text-sm max-w-[180px] truncate">
-                        {lead.assignees && lead.assignees.length > 0
-                          ? lead.assignees.map((a) => a.name).join(', ')
+                    <td className="px-4 py-3.5 text-slate-600 text-sm max-w-[180px] truncate">
+                      {lead.assignees && lead.assignees.length > 0
+                        ? lead.assignees.map((a) => a.name).join(', ')
+                        : lead.team_member_name
+                          ? lead.team_member_name
                           : <span className="text-slate-400">Unassigned</span>}
-                      </td>
-                    )}
+                    </td>
                     <td className="px-4 py-3.5 text-right">
                       <LeadRowActions
                         leadId={lead.id}
@@ -343,6 +461,7 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 
@@ -373,6 +492,17 @@ export default function DashboardPage() {
           lead={selectedLead}
           onClose={() => setSelectedLead(null)}
           onUpdate={fetchData}
+        />
+      )}
+
+      {showBulkEmail && selectedLeads.length > 0 && (
+        <BulkEmailModal
+          leads={selectedLeads}
+          onClose={() => setShowBulkEmail(false)}
+          onComplete={() => {
+            clearSelection();
+            fetchData();
+          }}
         />
       )}
     </div>
