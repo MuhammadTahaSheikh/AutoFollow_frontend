@@ -49,7 +49,9 @@ export default function EmailsPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">Email Automation</h1>
-          <p className="text-slate-500 mt-1">Track conversations with leads — replies linked to the emails they respond to</p>
+          <p className="text-slate-500 mt-1">
+            Track conversations with leads — outbound from your connected inbox, replies linked to each email
+          </p>
         </div>
         {!loading && (schedules.length > 0 || replies.length > 0) && (
           <div className="flex items-center gap-3 text-sm">

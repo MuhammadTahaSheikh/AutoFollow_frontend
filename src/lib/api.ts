@@ -380,11 +380,12 @@ export interface EmailSchedule {
   subject: string;
   body: string;
   scheduled_at: string;
-  status: 'pending' | 'sent' | 'failed' | 'cancelled';
+  status: 'pending' | 'sending' | 'sent' | 'failed' | 'cancelled';
   sent_at?: string;
   error_message?: string;
   lead_name?: string;
   lead_email?: string;
+  from_email?: string;
 }
 
 export interface EmailReply {

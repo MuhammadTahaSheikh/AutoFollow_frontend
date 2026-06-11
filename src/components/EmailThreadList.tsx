@@ -5,6 +5,7 @@ import { EmailThread, stripQuotedReplyText } from '@/lib/emailThreads';
 
 const STATUS_STYLES: Record<EmailSchedule['status'], string> = {
   pending: 'bg-amber-100 text-amber-700',
+  sending: 'bg-blue-100 text-blue-700',
   sent: 'bg-green-100 text-green-700',
   failed: 'bg-red-100 text-red-700',
   cancelled: 'bg-slate-100 text-slate-600',
@@ -50,8 +51,13 @@ export default function EmailThreadList({ threads, onCancel }: EmailThreadListPr
                       {thread.schedule.status}
                     </span>
                   </div>
-                  <p className="font-medium text-slate-900">{thread.schedule.subject}</p>
-                  <p className="text-sm text-slate-500 mt-2 line-clamp-3">{thread.schedule.body}</p>
+                            <p className="font-medium text-slate-900">{thread.schedule.subject}</p>
+                            {thread.schedule.from_email && (
+                              <p className="text-xs text-slate-400 mt-1">
+                                From {thread.schedule.from_email}
+                              </p>
+                            )}
+                            <p className="text-sm text-slate-500 mt-2 line-clamp-3">{thread.schedule.body}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-xs text-slate-400">
